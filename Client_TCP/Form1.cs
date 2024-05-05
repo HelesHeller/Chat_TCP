@@ -3,6 +3,9 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using Server_TCP;
+
 
 namespace Client_TCP
 {
@@ -11,44 +14,73 @@ namespace Client_TCP
         private TcpClient client;
         private StreamReader reader;
         private StreamWriter writer;
+        private UserRepository _userRepository;
 
         public Form1()
         {
             InitializeComponent();
             enter_button.Click += new EventHandler(enter_button_Click);  // Linking the button click event
+            _userRepository = new UserRepository(new ApplicationContext());
         }
 
         private async void enter_button_Click(object sender, EventArgs e)
         {
+            if (!ValidateInputs())
+                return;
+
+            if (!await TryConnectToServer())
+                return;
+
+            if (await TryRegisterUser())
+                HandleSuccessfulRegistration();
+            else
+                HandleFailedRegistration();
+        }
+
+        private bool ValidateInputs()
+        {
             if (string.IsNullOrEmpty(username_textBox.Text) || string.IsNullOrEmpty(password_textBox.Text) || string.IsNullOrEmpty(password2_textBox.Text))
             {
                 MessageBox.Show("Please fill in all fields.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                return false;
             }
 
             if (password_textBox.Text != password2_textBox.Text)
             {
                 MessageBox.Show("Passwords do not match.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                return false;
             }
 
+            return true;
+        }
+
+        private async Task<bool> TryConnectToServer()
+        {
             if (!await ConnectToServer())
             {
                 MessageBox.Show("Cannot connect to the server. Please try again.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                return false;
             }
-
-            if (await RegisterUser())
-            {
-                MessageBox.Show("Registration successful. You can now log in.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                Disconnect();
-                this.Close();  // Optionally close this form and return to the login form
-            }
-            else
-            {
-                MessageBox.Show("Registration failed. Please try different credentials.", "Registration Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            return true;
         }
+
+        private async Task<bool> TryRegisterUser()
+        {
+            return await RegisterUser();
+        }
+
+        private void HandleSuccessfulRegistration()
+        {
+            MessageBox.Show("Registration successful. You can now log in.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Disconnect();
+            this.Close(); // Optionally close this form and return to the login form
+        }
+
+        private void HandleFailedRegistration()
+        {
+            MessageBox.Show("Registration failed. Please try different credentials.", "Registration Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
 
         private async Task<bool> ConnectToServer()
         {
@@ -72,17 +104,19 @@ namespace Client_TCP
         {
             try
             {
-                await writer.WriteLineAsync(username_textBox.Text);
-                await writer.WriteLineAsync(password_textBox.Text);
-                await writer.WriteLineAsync("register"); // Command to indicate registration
-
-                var response = await reader.ReadLineAsync();
-                return response.Equals("Success", StringComparison.OrdinalIgnoreCase);
+                bool isRegistered = await _userRepository.RegisterUserAsync(username, password);
+                if (isRegistered)
+                {
+                    MessageBox.Show("Регистрация прошла успешно!");
+                }
+                else
+                {
+                    MessageBox.Show("Не удалось зарегистрироваться.");
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error during registration: {ex.Message}", "Registration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
+                MessageBox.Show($"Ошибка: {ex.Message}");
             }
         }
 

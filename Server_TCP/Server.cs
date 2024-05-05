@@ -39,16 +39,28 @@ namespace Server_TCP
                 using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 using (var reader = new StreamReader(stream, Encoding.UTF8))
                 {
+                    // Step 1: Read the username attempt from the client
                     username = await reader.ReadLineAsync();
-                    if (!clientWriters.TryAdd(username, writer))
+
+                    // Step 2: Validate the username
+                    if (UsernameExists(username))
                     {
-                        Console.WriteLine($"Failed to add {username}. Username may already be in use.");
-                        return; // Stop handling this client if username is already in use.
+                        await writer.WriteLineAsync("Username already in use. Please try a different one.");
+                        return; // Stop processing and close the connection
                     }
 
+                    // Step 3: If valid, add to the dictionary of client writers
+                    if (!clientWriters.TryAdd(username, writer))
+                    {
+                        await writer.WriteLineAsync("Failed to add username, please retry.");
+                        return;
+                    }
+
+                    // Inform the server and the user about the successful connection
                     Console.WriteLine($"{username} has joined the chat.");
                     await BroadcastMessageAsync($"{username} has joined the chat.");
 
+                    // Step 4: Process incoming messages from the user
                     string message;
                     while ((message = await reader.ReadLineAsync()) != null)
                     {
@@ -63,14 +75,19 @@ namespace Server_TCP
             }
             finally
             {
-                if (username != null)
+                // Clean up resources and notify about the user leaving
+                if (username != null && clientWriters.TryRemove(username, out _))
                 {
-                    clientWriters.TryRemove(username, out _);
                     Console.WriteLine($"{username} has left the chat.");
                     await BroadcastMessageAsync($"{username} has left the chat.");
                 }
                 client.Close();
             }
+        }
+
+        private static bool UsernameExists(string username)
+        {
+            return clientWriters.ContainsKey(username);
         }
 
         public static async Task BroadcastMessageAsync(string message)

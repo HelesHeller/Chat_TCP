@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,25 +14,46 @@ namespace Server_TCP
         {
             _context = context;
         }
-        public bool RegisterUser(string username, string password)
+        public async Task<bool> RegisterUserAsync(string username, string password)
         {
-            if (_context.Users.Any(e => e.UserName == username))
+            // Validate input
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                Console.WriteLine("User with this username alredy exists!");
-                return false;
+                throw new ArgumentException("Username and password must not be empty.");
             }
+
+            // Check if user already exists, using case-insensitive comparison
+            if (await _context.Users.AnyAsync(e => e.UserName.Equals(username, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException("User with this username already exists!");
+            }
+
+            // Generate salt and hash the password
             string salt = SecurityHelper.GenerateSalt(10101);
             string hashedPassword = SecurityHelper.HashPassword(password, salt, 10101, 70);
-            _context.Users.Add(new User
+
+            // Create and add the new user
+            var newUser = new User
             {
                 UserName = username,
                 Salt = salt,
                 PasswordHash = hashedPassword
-            });
-            _context.SaveChanges();
-            Console.WriteLine($"Create user: {username}");
-            return true;
+            };
+
+            _context.Users.Add(newUser);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // Log exception details here using your logging framework
+                return false;
+            }
         }
+
         public bool AutorizeUser(string userName, string password)
         {
             var currentUser = _context.Users.FirstOrDefault(e => e.UserName.Equals(userName));
