@@ -8,103 +8,90 @@ namespace Client_TCP
 {
     public partial class Form1 : Form
     {
-        private string[] serverIPs = { "127.0.0.1" };
+        private TcpClient client;
+        private StreamReader reader;
+        private StreamWriter writer;
 
         public Form1()
         {
             InitializeComponent();
+            enter_button.Click += new EventHandler(enter_button_Click);  // Linking the button click event
         }
 
         private async void enter_button_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(username_textBox.Text) || string.IsNullOrEmpty(password_textBox.Text))
+            if (string.IsNullOrEmpty(username_textBox.Text) || string.IsNullOrEmpty(password_textBox.Text) || string.IsNullOrEmpty(password2_textBox.Text))
             {
-                MessageBox.Show("Логін або пороль не заповнені. Спробуйте ще раз.");
+                MessageBox.Show("Please fill in all fields.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
             if (password_textBox.Text != password2_textBox.Text)
             {
-                MessageBox.Show("Паролі не співпадають. Спробуйте ще раз.");
+                MessageBox.Show("Passwords do not match.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            bool isConnected = await ConnectToServer();
-            if (!isConnected)
+            if (!await ConnectToServer())
             {
-                MessageBox.Show("Не вдалося підключитися до сервера.");
+                MessageBox.Show("Cannot connect to the server. Please try again.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            await RegisterUser();
+            if (await RegisterUser())
+            {
+                MessageBox.Show("Registration successful. You can now log in.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Disconnect();
+                this.Close();  // Optionally close this form and return to the login form
+            }
+            else
+            {
+                MessageBox.Show("Registration failed. Please try different credentials.", "Registration Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private async Task<bool> ConnectToServer()
         {
-            foreach (string ip in serverIPs)
+            try
             {
-                try
-                {
-                    TcpClient client = new TcpClient();
-                    await client.ConnectAsync(ip, 7777);
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Помилка при підключенні до серверу {ip}: {ex.Message}");
-                }
+                client = new TcpClient();
+                await client.ConnectAsync("127.0.0.1", 7777);
+                NetworkStream stream = client.GetStream();
+                writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+                reader = new StreamReader(stream, Encoding.UTF8);
+                return true;
             }
-            return false;
-        }
-
-        private async Task RegisterUser()
-        {
-            using (TcpClient client = new TcpClient(serverIPs[0], 7777))
+            catch (Exception ex)
             {
-                using (NetworkStream stream = client.GetStream())
-                using (StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
-                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
-                {
-                    // Send registration details to the server
-                    await writer.WriteLineAsync(username_textBox.Text);
-                    await writer.WriteLineAsync(password_textBox.Text);
-                    await writer.WriteLineAsync("register");
-
-                    // Read the response from the server
-                    var response = await reader.ReadLineAsync();
-
-                    // Attempt to parse the response as a Boolean
-                    if (bool.TryParse(response, out bool isRegistered))
-                    {
-                        if (isRegistered)
-                        {
-                            MessageBox.Show("Користувач успішно зареєстрований.");
-                            ShowClientForm(); // Proceed to show the main client form
-                        }
-                        else
-                        {
-                            MessageBox.Show("Цей користувач вже зареєстрований.");
-                        }
-                    }
-                    else
-                    {
-                        // The response was not a valid boolean string, handle accordingly
-                        MessageBox.Show($"Unexpected response from server: {response}");
-                    }
-                }
+                MessageBox.Show($"Error connecting to server: {ex.Message}", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
         }
 
-        private void ShowClientForm()
+        private async Task<bool> RegisterUser()
         {
-            ClientForm clientForm = new ClientForm(); 
-            this.Hide(); 
-            clientForm.ShowDialog(); 
-            this.Close(); 
+            try
+            {
+                await writer.WriteLineAsync(username_textBox.Text);
+                await writer.WriteLineAsync(password_textBox.Text);
+                await writer.WriteLineAsync("register"); // Command to indicate registration
+
+                var response = await reader.ReadLineAsync();
+                return response.Equals("Success", StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during registration: {ex.Message}", "Registration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
         }
 
-
-
-
+        private void Disconnect()
+        {
+            if (client != null && client.Connected)
+            {
+                client.Close();
+            }
+        }
     }
 }

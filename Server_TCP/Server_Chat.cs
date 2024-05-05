@@ -58,7 +58,7 @@ namespace Server_TCP
 
             try
             {
-                await botClient.ConnectAsync(localAddr, 7777);
+                await botClient.ConnectAsync("127.0.0.1", 7777);
                 NetworkStream stream = botClient.GetStream();
                 StreamWriter writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
                 StreamReader reader = new StreamReader(stream, Encoding.UTF8);

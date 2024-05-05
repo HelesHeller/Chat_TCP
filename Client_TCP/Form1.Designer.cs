@@ -89,7 +89,7 @@ namespace Client_TCP
             enter_button.TabIndex = 6;
             enter_button.Text = "Registrate";
             enter_button.UseVisualStyleBackColor = false;
-            enter_button.Click += enter_button_Click;
+            //enter_button.Click += enter_button_Click;
             // 
             // label3
             // 

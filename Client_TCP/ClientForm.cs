@@ -1,5 +1,8 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.IO;
+using System.Net.Sockets;
 using System.Text;
+using System.Windows.Forms;
 
 namespace Client_TCP
 {
@@ -9,22 +12,18 @@ namespace Client_TCP
         private StreamReader reader;
         private StreamWriter writer;
 
-        private string[] serverIPs = { "127.0.0.1" };
-
-        public ClientForm()
+        // Constructor now requires the already connected TcpClient, StreamReader, and StreamWriter
+        public ClientForm(TcpClient client, StreamReader reader, StreamWriter writer)
         {
             InitializeComponent();
+            this.client = client;
+            this.reader = reader;
+            this.writer = writer;
+
             users_ListBox.SelectedIndexChanged += users_ListBox_SelectedIndexChanged;
-        }
 
-        private void connect_Button_Click(object sender, EventArgs e)
-        {
-            RunClient();
-        }
-
-        private void disconnect_Button_Click(object sender, EventArgs e)
-        {
-            StopClient();
+            // Start listening to incoming messages as soon as the form is loaded
+            Task.Run(async () => await ReceiveMessages());
         }
 
         private void send_Button_Click(object sender, EventArgs e)
@@ -37,102 +36,6 @@ namespace Client_TCP
             chatTextBox.Clear();
         }
 
-        private void registration_label_Click(object sender, EventArgs e)
-        {
-            Form1 registrationForm = new Form1();
-            registrationForm.ShowDialog();
-        }
-
-        private async void RunClient()
-        {
-            connect_Button.Enabled = false;
-            login_groupBox.Enabled = false;
-            try
-            {
-                foreach (string ip in serverIPs)
-                {
-                    client = new TcpClient();
-                    await client.ConnectAsync(ip, 7777);
-                    break;
-                }
-
-                if (client == null || !client.Connected)
-                {
-                    throw new Exception("Неможливо підключитись до жодного сервера...");
-                }
-
-                NetworkStream stream = client.GetStream();
-                writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
-                reader = new StreamReader(stream, Encoding.UTF8);
-
-                await writer.WriteLineAsync(usernameTextBox.Text);
-                await writer.WriteLineAsync(passwordTextBox.Text);
-
-                string response = await reader.ReadLineAsync();
-                bool authorized = bool.Parse(response);
-
-                if (authorized)
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        string message;
-                        while ((message = await reader.ReadLineAsync()) != null)
-                        {
-                            Invoke(new Action(() =>
-                            {
-                                if (message.Contains(","))
-                                {
-                                    string[] users = message.Split(',');
-
-                                    users_ListBox.Items.Clear();
-
-                                    foreach (var user in users)
-                                    {
-                                        users_ListBox.Items.Add(user);
-                                    }
-                                }
-                                else
-                                {
-                                    chatTextBox.AppendText($"[{DateTime.Now.ToLongTimeString()}] {message}" + Environment.NewLine);
-                                }
-                            }));
-                        }
-                    });
-                }
-                else
-                {
-                    MessageBox.Show("Даний користувач не зареєстрований. Пройдіть реєстрацію", "Помилка авторизації", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    StopClient();
-                }
-            }
-
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error connecting to server: " + ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void StopClient()
-        {
-            connect_Button.Enabled = true;
-            login_groupBox.Enabled = true;
-            if (client != null && client.Connected)
-            {
-                try
-                {
-                    writer.Close();
-                    reader.Close();
-                    client.Close();
-                    users_ListBox.Items.Clear();
-                    usernameTextBox.Clear();
-                    passwordTextBox.Clear();
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error disconnecting from server: " + ex.Message, "Disconnection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
-        }
         private async void Send()
         {
             if (client != null && client.Connected)
@@ -150,6 +53,38 @@ namespace Client_TCP
             else
             {
                 MessageBox.Show("Not connected to server.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+
+        private async Task ReceiveMessages()
+        {
+            try
+            {
+                string message;
+                while ((message = await reader.ReadLineAsync()) != null)
+                {
+                    Invoke(new Action(() =>
+                    {
+                        if (message.Contains(","))
+                        {
+                            string[] users = message.Split(',');
+                            users_ListBox.Items.Clear();
+                            foreach (var user in users)
+                            {
+                                users_ListBox.Items.Add(user);
+                            }
+                        }
+                        else
+                        {
+                            chatTextBox.AppendText($"[{DateTime.Now.ToLongTimeString()}] {message}" + Environment.NewLine);
+                        }
+                    }));
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error receiving messages: " + ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                // Optionally reconnect or close the client
             }
         }
 
