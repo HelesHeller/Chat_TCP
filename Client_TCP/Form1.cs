@@ -20,7 +20,7 @@ namespace Client_TCP
         {
             InitializeComponent();
             enter_button.Click += new EventHandler(enter_button_Click);  // Linking the button click event
-            _userRepository = new UserRepository(new ApplicationContext());
+            _userRepository = new UserRepository(new Server_TCP.ApplicationContext());
         }
 
         private async void enter_button_Click(object sender, EventArgs e)
@@ -104,21 +104,35 @@ namespace Client_TCP
         {
             try
             {
+                string username = username_textBox.Text;
+                string password = password_textBox.Text;
                 bool isRegistered = await _userRepository.RegisterUserAsync(username, password);
                 if (isRegistered)
                 {
                     MessageBox.Show("Регистрация прошла успешно!");
+                    
+                    LoginForm loginForm = new LoginForm();
+                    this.Hide();
+                    loginForm.ShowDialog();
+                    this.Close();
+                    
+                   
+                    
+                    return true;
                 }
                 else
                 {
                     MessageBox.Show("Не удалось зарегистрироваться.");
+                    return false;
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка: {ex.Message}");
+                return false; // Возвращаем false в случае исключения
             }
         }
+
 
         private void Disconnect()
         {

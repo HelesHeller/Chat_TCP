@@ -30,8 +30,6 @@
         {
             send_TextBox = new TextBox();
             users_ListBox = new ListBox();
-            connect_Button = new Button();
-            disconnect_Button = new Button();
             send_Button = new Button();
             clear_Chat_Button = new Button();
             chatTextBox = new TextBox();
@@ -54,30 +52,8 @@
             users_ListBox.ItemHeight = 17;
             users_ListBox.Location = new Point(12, 12);
             users_ListBox.Name = "users_ListBox";
-            users_ListBox.Size = new Size(121, 429);
+            users_ListBox.Size = new Size(121, 497);
             users_ListBox.TabIndex = 3;
-            // 
-            // connect_Button
-            // 
-            connect_Button.BackColor = Color.PaleVioletRed;
-            connect_Button.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold, GraphicsUnit.Point, 204);
-            connect_Button.Location = new Point(12, 442);
-            connect_Button.Name = "connect_Button";
-            connect_Button.Size = new Size(121, 27);
-            connect_Button.TabIndex = 4;
-            connect_Button.Text = "Connect";
-            connect_Button.UseVisualStyleBackColor = false;
-            // 
-            // disconnect_Button
-            // 
-            disconnect_Button.BackColor = Color.Pink;
-            disconnect_Button.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold, GraphicsUnit.Point, 204);
-            disconnect_Button.Location = new Point(12, 475);
-            disconnect_Button.Name = "disconnect_Button";
-            disconnect_Button.Size = new Size(121, 27);
-            disconnect_Button.TabIndex = 5;
-            disconnect_Button.Text = "Disconnect";
-            disconnect_Button.UseVisualStyleBackColor = false;
             // 
             // send_Button
             // 
@@ -124,8 +100,6 @@
             Controls.Add(chatTextBox);
             Controls.Add(clear_Chat_Button);
             Controls.Add(send_Button);
-            Controls.Add(disconnect_Button);
-            Controls.Add(connect_Button);
             Controls.Add(users_ListBox);
             Controls.Add(send_TextBox);
             FormBorderStyle = FormBorderStyle.FixedSingle;
@@ -141,8 +115,6 @@
         #endregion
         private TextBox send_TextBox;
         private ListBox users_ListBox;
-        private Button connect_Button;
-        private Button disconnect_Button;
         private Button send_Button;
         private Button clear_Chat_Button;
         private TextBox chatTextBox;

@@ -1,38 +1,56 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Server_TCP
 {
-    internal class UserRepository
+    public interface IUserRepository
+    {
+        Task<bool> RegisterUserAsync(string username, string password);
+        Task<bool> AuthorizeUser(string username, string password);
+    }
+
+    public class UserRepository : IUserRepository
     {
         private readonly ApplicationContext _context;
+
         public UserRepository(ApplicationContext context)
         {
             _context = context;
         }
+
         public async Task<bool> RegisterUserAsync(string username, string password)
         {
-            // Validate input
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                throw new ArgumentException("Username and password must not be empty.");
-            }
+            ValidateInput(username, password);
 
-            // Check if user already exists, using case-insensitive comparison
-            if (await _context.Users.AnyAsync(e => e.UserName.Equals(username, StringComparison.OrdinalIgnoreCase)))
+            if (await _context.Users.AnyAsync(u => u.UserName.ToLower() == username.ToLower()))
             {
                 throw new InvalidOperationException("User with this username already exists!");
             }
 
-            // Generate salt and hash the password
-            string salt = SecurityHelper.GenerateSalt(10101);
-            string hashedPassword = SecurityHelper.HashPassword(password, salt, 10101, 70);
 
-            // Create and add the new user
+            return await CreateUser(username, password);
+        }
+
+        private void ValidateInput(string username, string password)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                throw new ArgumentException("Username and password must not be empty.");
+            }
+        }
+
+        private async Task<bool> UserExists(string username)
+        {
+            return await _context.Users.AnyAsync(e => e.UserName.Equals(username, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private async Task<bool> CreateUser(string username, string password)
+        {
+            var salt = SecurityHelper.GenerateSalt(10101);
+            var hashedPassword = SecurityHelper.HashPassword(password, salt, 10101, 70);
+
             var newUser = new User
             {
                 UserName = username,
@@ -49,20 +67,24 @@ namespace Server_TCP
             }
             catch (Exception ex)
             {
-                // Log exception details here using your logging framework
+                // В реальном приложении здесь должен быть код логирования
                 return false;
             }
         }
 
-        public bool AutorizeUser(string userName, string password)
+        public async Task<bool> AuthorizeUser(string username, string password)
         {
-            var currentUser = _context.Users.FirstOrDefault(e => e.UserName.Equals(userName));
-            if (currentUser != null)
+            // EF Core корректно обрабатывает оператор == для строковых полей
+            var user = await _context.Users
+                                     .FirstOrDefaultAsync(u => u.UserName == username);
+
+            if (user != null)
             {
-                string hashedPassword = SecurityHelper.HashPassword(password, currentUser.Salt, 10101, 70);
-                return hashedPassword.Equals(currentUser.PasswordHash);
+                var hashedPassword = SecurityHelper.HashPassword(password, user.Salt, 10101, 70);
+                return hashedPassword == user.PasswordHash;
             }
             return false;
         }
+
     }
 }

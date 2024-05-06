@@ -39,28 +39,41 @@ namespace Server_TCP
                 using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 using (var reader = new StreamReader(stream, Encoding.UTF8))
                 {
-                    // Step 1: Read the username attempt from the client
-                    username = await reader.ReadLineAsync();
+                    // Читаем команду от клиента
+                    string command = await reader.ReadLineAsync();
 
-                    // Step 2: Validate the username
+                    if (command == "authenticate")
+                    {
+                        username = await reader.ReadLineAsync();
+                        string password = await reader.ReadLineAsync();
+
+                        // Обработка аутентификации
+                        bool isAuthenticated = await Authenticate(username, password);
+                        await writer.WriteLineAsync(isAuthenticated.ToString());
+                        if (!isAuthenticated)
+                        {
+                            return; // Завершаем соединение, если аутентификация не удалась
+                        }
+                    }
+
+                    // Проверяем, не используется ли уже имя пользователя
                     if (UsernameExists(username))
                     {
                         await writer.WriteLineAsync("Username already in use. Please try a different one.");
-                        return; // Stop processing and close the connection
+                        return; // Завершаем соединение, если имя пользователя уже используется
                     }
 
-                    // Step 3: If valid, add to the dictionary of client writers
+                    // Добавляем пользователя в словарь активных соединений
                     if (!clientWriters.TryAdd(username, writer))
                     {
                         await writer.WriteLineAsync("Failed to add username, please retry.");
                         return;
                     }
 
-                    // Inform the server and the user about the successful connection
                     Console.WriteLine($"{username} has joined the chat.");
                     await BroadcastMessageAsync($"{username} has joined the chat.");
 
-                    // Step 4: Process incoming messages from the user
+                    // Обработка входящих сообщений
                     string message;
                     while ((message = await reader.ReadLineAsync()) != null)
                     {
@@ -75,7 +88,6 @@ namespace Server_TCP
             }
             finally
             {
-                // Clean up resources and notify about the user leaving
                 if (username != null && clientWriters.TryRemove(username, out _))
                 {
                     Console.WriteLine($"{username} has left the chat.");
@@ -89,6 +101,20 @@ namespace Server_TCP
         {
             return clientWriters.ContainsKey(username);
         }
+
+        private static async Task<bool> Authenticate(string username, string password)
+        {
+            // Здесь должен быть вызов вашего метода UserRepository.AuthorizeUser
+            var userRepository = new UserRepository(new ApplicationContext());
+            return await userRepository.AuthorizeUser(username, password);
+        }
+
+
+        private static bool IsUsernameInUse(string username)
+        {
+            return clientWriters.ContainsKey(username);
+        }
+
 
         public static async Task BroadcastMessageAsync(string message)
         {

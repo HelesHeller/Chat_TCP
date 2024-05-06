@@ -3,7 +3,7 @@ using System;
 
 namespace Server_TCP
 {
-    internal class DatabaseManager
+    public class DatabaseManager
     {
 
         private readonly ApplicationContext _context;

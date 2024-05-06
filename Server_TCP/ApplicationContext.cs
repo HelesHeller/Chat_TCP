@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace Server_TCP
 {
-      class ApplicationContext : DbContext
+    public  class ApplicationContext : DbContext
     {
         public  DbSet<User> Users { get; set; }
         public DbSet<Log> Logs { get; set; }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Server_TCP
 {
-    internal class User
+    public class User
     {
         public int Id { get; set; }
         public string UserName { get; set; }
