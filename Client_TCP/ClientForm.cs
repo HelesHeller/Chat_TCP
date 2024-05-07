@@ -1,9 +1,5 @@
-﻿using System;
-using System.IO;
+﻿using Server_TCP;
 using System.Net.Sockets;
-using System.Text;
-using System.Windows.Forms;
-using Server_TCP;
 
 namespace Client_TCP
 {
@@ -23,6 +19,7 @@ namespace Client_TCP
 
             users_ListBox.SelectedIndexChanged += users_ListBox_SelectedIndexChanged;
             Load += async (sender, e) => await ReceiveMessages();
+            button_refresh.Click += async (sender, e) => await RequestUserListUpdate();
         }
 
         private void send_Button_Click(object sender, EventArgs e)
@@ -49,6 +46,25 @@ namespace Client_TCP
                 catch (Exception ex)
                 {
                     UpdateStatus($"Error sending message: {ex.Message}");
+                }
+            }
+            else
+            {
+                UpdateStatus("Not connected to server.");
+            }
+        }
+        private async Task RequestUserListUpdate()
+        {
+            if (client != null && client.Connected)
+            {
+                try
+                {
+                    // Отправляем специальный запрос для обновления списка пользователей
+                    await writer.WriteLineAsync("request_users");
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Error requesting user list: {ex.Message}");
                 }
             }
             else
@@ -84,7 +100,7 @@ namespace Client_TCP
         {
             Invoke(new Action(() =>
             {
-                
+
                 users_ListBox.Items.Clear();
                 string[] users = userList.Split(',');
                 foreach (var user in users)
@@ -127,5 +143,7 @@ namespace Client_TCP
         {
 
         }
+
+        
     }
 }

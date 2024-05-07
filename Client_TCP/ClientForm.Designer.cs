@@ -34,6 +34,7 @@
             send_Button = new Button();
             clear_Chat_Button = new Button();
             chatTextBox = new TextBox();
+            button_refresh = new Button();
             SuspendLayout();
             // 
             // send_TextBox
@@ -53,13 +54,14 @@
             users_ListBox.ItemHeight = 17;
             users_ListBox.Location = new Point(12, 12);
             users_ListBox.Name = "users_ListBox";
-            users_ListBox.Size = new Size(121, 497);
+            users_ListBox.Size = new Size(121, 463);
             users_ListBox.TabIndex = 3;
             users_ListBox.SelectedIndexChanged += users_ListBox_SelectedIndexChanged;
             // 
             // send_Button
             // 
             send_Button.BackColor = Color.YellowGreen;
+            send_Button.FlatStyle = FlatStyle.Flat;
             send_Button.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold, GraphicsUnit.Point, 204);
             send_Button.Location = new Point(805, 479);
             send_Button.Name = "send_Button";
@@ -72,6 +74,7 @@
             // clear_Chat_Button
             // 
             clear_Chat_Button.BackColor = Color.IndianRed;
+            clear_Chat_Button.FlatStyle = FlatStyle.Flat;
             clear_Chat_Button.Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold, GraphicsUnit.Point, 204);
             clear_Chat_Button.Location = new Point(868, 479);
             clear_Chat_Button.Name = "clear_Chat_Button";
@@ -94,12 +97,24 @@
             chatTextBox.TabIndex = 17;
             chatTextBox.TextChanged += chatTextBox_TextChanged;
             // 
+            // button_refresh
+            // 
+            button_refresh.BackColor = Color.LavenderBlush;
+            button_refresh.FlatStyle = FlatStyle.Flat;
+            button_refresh.Location = new Point(12, 479);
+            button_refresh.Name = "button_refresh";
+            button_refresh.Size = new Size(121, 23);
+            button_refresh.TabIndex = 18;
+            button_refresh.Text = "Refresh";
+            button_refresh.UseVisualStyleBackColor = false;
+            // 
             // ClientForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.MistyRose;
             ClientSize = new Size(931, 513);
+            Controls.Add(button_refresh);
             Controls.Add(chatTextBox);
             Controls.Add(clear_Chat_Button);
             Controls.Add(send_Button);
@@ -122,5 +137,6 @@
         private Button send_Button;
         private Button clear_Chat_Button;
         private TextBox chatTextBox;
+        private Button button_refresh;
     }
 }

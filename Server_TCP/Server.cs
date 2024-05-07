@@ -40,46 +40,43 @@ namespace Server_TCP
                 using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 using (var reader = new StreamReader(stream, Encoding.UTF8))
                 {
-                    // Читаем команду от клиента
-                    string command = await reader.ReadLineAsync();
-
-                    if (command == "authenticate")
+                    while (true) // Изменено для постоянной обработки команд
                     {
-                        username = await reader.ReadLineAsync();
-                        string password = await reader.ReadLineAsync();
+                        string command = await reader.ReadLineAsync();
 
-                        // Обработка аутентификации
-                        bool isAuthenticated = await Authenticate(username, password);
-                        await writer.WriteLineAsync(isAuthenticated.ToString());
-                        if (!isAuthenticated)
+                        if (command == "authenticate")
                         {
-                            return; // Завершаем соединение, если аутентификация не удалась
+                            username = await reader.ReadLineAsync();
+                            string password = await reader.ReadLineAsync();
+
+                            // Обработка аутентификации
+                            bool isAuthenticated = await Authenticate(username, password);
+                            await writer.WriteLineAsync(isAuthenticated.ToString());
+                            if (!isAuthenticated)
+                            {
+                                return; // Завершаем соединение, если аутентификация не удалась
+                            }
+
+                            // Проверяем, не используется ли уже имя пользователя
+                            if (!clientWriters.TryAdd(username, writer))
+                            {
+                                await writer.WriteLineAsync("Username already in use. Please try a different one.");
+                                return;
+                            }
+
+                            Console.WriteLine($"{username} has joined the chat.");
+                            await BroadcastUsers(clientWriters.Keys); // Отправка списка пользователей при успешной аутентификации
                         }
-                    }
-
-                    // Проверяем, не используется ли уже имя пользователя
-                    if (UsernameExists(username))
-                    {
-                        await writer.WriteLineAsync("Username already in use. Please try a different one.");
-                        return; // Завершаем соединение, если имя пользователя уже используется
-                    }
-
-                    // Добавляем пользователя в словарь активных соединений
-                    if (!clientWriters.TryAdd(username, writer))
-                    {
-                        await writer.WriteLineAsync("Failed to add username, please retry.");
-                        return;
-                    }
-
-                    Console.WriteLine($"{username} has joined the chat.");
-                    await BroadcastMessageAsync($"{username} has joined the chat.");
-
-                    // Обработка входящих сообщений
-                    string message;
-                    while ((message = await reader.ReadLineAsync()) != null)
-                    {
-                        Console.WriteLine($"{username}: {message}");
-                        await BroadcastMessageAsync($"{username}: {message}");
+                        else if (command == "request_users")
+                        {
+                            await BroadcastUsers(clientWriters.Keys); // Отправка списка пользователей по запросу
+                        }
+                        else
+                        {
+                            // Обработка обычного сообщения
+                            Console.WriteLine($"{username}: {command}");
+                            await BroadcastMessageAsync($"{username}: {command}");
+                        }
                     }
                 }
             }
@@ -92,6 +89,7 @@ namespace Server_TCP
                 if (username != null && clientWriters.TryRemove(username, out _))
                 {
                     Console.WriteLine($"{username} has left the chat.");
+                    await BroadcastUsers(clientWriters.Keys); // Обновление списка пользователей при выходе
                     await BroadcastMessageAsync($"{username} has left the chat.");
                 }
                 client.Close();
