@@ -40,40 +40,38 @@ namespace Server_TCP
                 using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 using (var reader = new StreamReader(stream, Encoding.UTF8))
                 {
-                    while (true) // Изменено для постоянной обработки команд
+                    string command;
+                    while ((command = await reader.ReadLineAsync()) != null)
                     {
-                        string command = await reader.ReadLineAsync();
-
                         if (command == "authenticate")
                         {
                             username = await reader.ReadLineAsync();
                             string password = await reader.ReadLineAsync();
 
-                            // Обработка аутентификации
                             bool isAuthenticated = await Authenticate(username, password);
                             await writer.WriteLineAsync(isAuthenticated.ToString());
                             if (!isAuthenticated)
                             {
-                                return; // Завершаем соединение, если аутентификация не удалась
+                                Console.WriteLine($"Authentication failed for {username}");
+                                return;
                             }
 
-                            // Проверяем, не используется ли уже имя пользователя
                             if (!clientWriters.TryAdd(username, writer))
                             {
-                                await writer.WriteLineAsync("Username already in use. Please try a different one.");
+                                await writer.WriteLineAsync("Username already in use.");
                                 return;
                             }
 
                             Console.WriteLine($"{username} has joined the chat.");
-                            await BroadcastUsers(clientWriters.Keys); // Отправка списка пользователей при успешной аутентификации
+                            await BroadcastUsers(clientWriters.Keys);
+                            await SendChatHistory(writer);
                         }
                         else if (command == "request_users")
                         {
-                            await BroadcastUsers(clientWriters.Keys); // Отправка списка пользователей по запросу
+                            await BroadcastUsers(clientWriters.Keys);
                         }
                         else
                         {
-                            // Обработка обычного сообщения
                             Console.WriteLine($"{username}: {command}");
                             await BroadcastMessageAsync($"{username}: {command}");
                         }
@@ -86,15 +84,20 @@ namespace Server_TCP
             }
             finally
             {
-                if (username != null && clientWriters.TryRemove(username, out _))
+                if (username != null)
                 {
-                    Console.WriteLine($"{username} has left the chat.");
-                    await BroadcastUsers(clientWriters.Keys); // Обновление списка пользователей при выходе
-                    await BroadcastMessageAsync($"{username} has left the chat.");
+                    if (clientWriters.TryRemove(username, out _))
+                    {
+                        Console.WriteLine($"{username} has left the chat.");
+                        await BroadcastUsers(clientWriters.Keys);
+                        await BroadcastMessageAsync($"{username} has left the chat.");
+                    }
                 }
                 client.Close();
             }
         }
+
+
 
         private static bool UsernameExists(string username)
         {
@@ -115,32 +118,47 @@ namespace Server_TCP
         }
 
 
-        public static async Task BroadcastMessageAsync(string message, bool saveToHistory = true)
+        private static async Task BroadcastMessageAsync(string message, bool saveToHistory = true)
         {
-            if (saveToHistory)
+            if (saveToHistory && chatHistory != null)
             {
                 chatHistory.Add(message);
             }
 
             foreach (var writer in clientWriters.Values)
             {
-                try
+                if (writer != null)
                 {
-                    await writer.WriteLineAsync(message);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error sending message: " + ex.Message);
+                    try
+                    {
+                        await writer.WriteLineAsync(message);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Error sending message: " + ex.Message);
+                    }
                 }
             }
         }
 
+        private static async Task SendChatHistory(StreamWriter writer)
+        {
+            foreach (var message in chatHistory)
+            {
+                await writer.WriteLineAsync("HISTORY:" + message); // Добавляем префикс для истории
+            }
+        }
+
+
+
+
+
         public static async Task BroadcastUsers(IEnumerable<string> users)
         {
-            string usersList = "USERS:" + String.Join(",", users);
+            string userList = "USERS:" + String.Join(",", users);
             foreach (var writer in clientWriters.Values)
             {
-                await writer.WriteLineAsync(usersList);
+                await writer.WriteLineAsync(userList);
             }
         }
 

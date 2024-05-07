@@ -67,14 +67,14 @@ namespace Server_TCP
             }
             catch (Exception ex)
             {
-                // В реальном приложении здесь должен быть код логирования
+                
                 return false;
             }
         }
 
         public async Task<bool> AuthorizeUser(string username, string password)
         {
-            // EF Core корректно обрабатывает оператор == для строковых полей
+            
             var user = await _context.Users
                                      .FirstOrDefaultAsync(u => u.UserName == username);
 

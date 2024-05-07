@@ -84,6 +84,10 @@ namespace Client_TCP
                     {
                         UpdateUserList(message.Substring(6));
                     }
+                    else if (message.StartsWith("HISTORY:"))
+                    {
+                        AddMessageToChat(message.Substring(8)); // Предполагается что HISTORY: уже удалено
+                    }
                     else
                     {
                         AddMessageToChat(message);
@@ -92,9 +96,10 @@ namespace Client_TCP
             }
             catch (Exception ex)
             {
-                UpdateStatus($"Error receiving messages: {ex.Message}");
+                MessageBox.Show("Error receiving messages: " + ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
         private void UpdateUserList(string userList)
         {
