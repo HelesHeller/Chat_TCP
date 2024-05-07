@@ -29,6 +29,7 @@ namespace Client_TCP
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             label2 = new Label();
             password_textBox = new TextBox();
             label1 = new Label();
@@ -41,7 +42,7 @@ namespace Client_TCP
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(12, 73);
+            label2.Location = new Point(12, 58);
             label2.Name = "label2";
             label2.Size = new Size(117, 15);
             label2.TabIndex = 10;
@@ -52,7 +53,7 @@ namespace Client_TCP
             password_textBox.BackColor = Color.LavenderBlush;
             password_textBox.BorderStyle = BorderStyle.FixedSingle;
             password_textBox.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 204);
-            password_textBox.Location = new Point(146, 69);
+            password_textBox.Location = new Point(146, 54);
             password_textBox.Multiline = true;
             password_textBox.Name = "password_textBox";
             password_textBox.PasswordChar = '*';
@@ -83,18 +84,17 @@ namespace Client_TCP
             // enter_button
             // 
             enter_button.BackColor = Color.LightPink;
-            enter_button.Location = new Point(146, 138);
+            enter_button.Location = new Point(162, 112);
             enter_button.Name = "enter_button";
             enter_button.Size = new Size(154, 42);
             enter_button.TabIndex = 6;
             enter_button.Text = "Registrate";
             enter_button.UseVisualStyleBackColor = false;
-            //enter_button.Click += enter_button_Click;
             // 
             // label3
             // 
             label3.AutoSize = true;
-            label3.Location = new Point(12, 113);
+            label3.Location = new Point(12, 87);
             label3.Name = "label3";
             label3.Size = new Size(134, 15);
             label3.TabIndex = 12;
@@ -105,7 +105,7 @@ namespace Client_TCP
             password2_textBox.BackColor = Color.LavenderBlush;
             password2_textBox.BorderStyle = BorderStyle.FixedSingle;
             password2_textBox.Font = new Font("Segoe UI", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 204);
-            password2_textBox.Location = new Point(146, 109);
+            password2_textBox.Location = new Point(146, 83);
             password2_textBox.Multiline = true;
             password2_textBox.Name = "password2_textBox";
             password2_textBox.PasswordChar = '*';
@@ -117,7 +117,7 @@ namespace Client_TCP
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.MistyRose;
-            ClientSize = new Size(474, 186);
+            ClientSize = new Size(474, 164);
             Controls.Add(label3);
             Controls.Add(password2_textBox);
             Controls.Add(label2);
@@ -126,12 +126,13 @@ namespace Client_TCP
             Controls.Add(username_textBox);
             Controls.Add(enter_button);
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
             MdiChildrenMinimizedAnchorBottom = false;
             MinimizeBox = false;
             Name = "Form1";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = "RegistrationForm";
+            Text = "Registration";
             ResumeLayout(false);
             PerformLayout();
         }

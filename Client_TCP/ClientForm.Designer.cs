@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ClientForm));
             send_TextBox = new TextBox();
             users_ListBox = new ListBox();
             send_Button = new Button();
@@ -54,6 +55,7 @@
             users_ListBox.Name = "users_ListBox";
             users_ListBox.Size = new Size(121, 497);
             users_ListBox.TabIndex = 3;
+            users_ListBox.SelectedIndexChanged += users_ListBox_SelectedIndexChanged;
             // 
             // send_Button
             // 
@@ -90,6 +92,7 @@
             chatTextBox.ScrollBars = ScrollBars.Vertical;
             chatTextBox.Size = new Size(780, 461);
             chatTextBox.TabIndex = 17;
+            chatTextBox.TextChanged += chatTextBox_TextChanged;
             // 
             // ClientForm
             // 
@@ -103,11 +106,12 @@
             Controls.Add(users_ListBox);
             Controls.Add(send_TextBox);
             FormBorderStyle = FormBorderStyle.FixedSingle;
+            Icon = (Icon)resources.GetObject("$this.Icon");
             MaximizeBox = false;
             MinimizeBox = false;
             Name = "ClientForm";
             StartPosition = FormStartPosition.CenterScreen;
-            Text = " Bla-Bla Chat";
+            Text = "Cherry Chat";
             ResumeLayout(false);
             PerformLayout();
         }

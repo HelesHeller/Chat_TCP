@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace Server_TCP
 {
     public class Server
@@ -116,24 +117,39 @@ namespace Server_TCP
         }
 
 
-        public static async Task BroadcastMessageAsync(string message)
+        public static async Task BroadcastMessageAsync(string message, bool saveToHistory = true)
         {
-            chatHistory.Add(message);
-            var tasks = new List<Task>();
+            if (saveToHistory)
+            {
+                chatHistory.Add(message);
+            }
 
             foreach (var writer in clientWriters.Values)
             {
-                tasks.Add(writer.WriteLineAsync(message));
+                try
+                {
+                    await writer.WriteLineAsync(message);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error sending message: " + ex.Message);
+                }
             }
+        }
 
-            try
+        public static async Task BroadcastUsers(IEnumerable<string> users)
+        {
+            string usersList = "USERS:" + String.Join(",", users);
+            foreach (var writer in clientWriters.Values)
             {
-                await Task.WhenAll(tasks);
+                await writer.WriteLineAsync(usersList);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error broadcasting message: {ex.Message}");
-            }
+        }
+
+        public static async Task SendUserListAsync()
+        {
+            string userList = string.Join(",", clientWriters.Keys);
+            await BroadcastMessageAsync("userlist:" + userList, saveToHistory: false);
         }
 
         public static void Start()

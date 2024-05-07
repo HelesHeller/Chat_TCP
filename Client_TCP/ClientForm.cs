@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Windows.Forms;
+using Server_TCP;
 
 namespace Client_TCP
 {
@@ -11,8 +12,8 @@ namespace Client_TCP
         private TcpClient client;
         private StreamReader reader;
         private StreamWriter writer;
+        private Server server;
 
-        // Constructor now requires the already connected TcpClient, StreamReader, and StreamWriter
         public ClientForm(TcpClient client, StreamReader reader, StreamWriter writer)
         {
             InitializeComponent();
@@ -21,9 +22,7 @@ namespace Client_TCP
             this.writer = writer;
 
             users_ListBox.SelectedIndexChanged += users_ListBox_SelectedIndexChanged;
-
-            // Start listening to incoming messages as soon as the form is loaded
-            Task.Run(async () => await ReceiveMessages());
+            Load += async (sender, e) => await ReceiveMessages();
         }
 
         private void send_Button_Click(object sender, EventArgs e)
@@ -38,6 +37,8 @@ namespace Client_TCP
 
         private async void Send()
         {
+            if (string.IsNullOrWhiteSpace(send_TextBox.Text)) return;
+
             if (client != null && client.Connected)
             {
                 try
@@ -47,12 +48,12 @@ namespace Client_TCP
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error sending message: " + ex.Message, "Send Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    UpdateStatus($"Error sending message: {ex.Message}");
                 }
             }
             else
             {
-                MessageBox.Show("Not connected to server.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                UpdateStatus("Not connected to server.");
             }
         }
 
@@ -63,28 +64,53 @@ namespace Client_TCP
                 string message;
                 while ((message = await reader.ReadLineAsync()) != null)
                 {
-                    Invoke(new Action(() =>
+                    if (message.StartsWith("USERS:"))
                     {
-                        if (message.Contains(","))
-                        {
-                            string[] users = message.Split(',');
-                            users_ListBox.Items.Clear();
-                            foreach (var user in users)
-                            {
-                                users_ListBox.Items.Add(user);
-                            }
-                        }
-                        else
-                        {
-                            chatTextBox.AppendText($"[{DateTime.Now.ToLongTimeString()}] {message}" + Environment.NewLine);
-                        }
-                    }));
+                        UpdateUserList(message.Substring(6));
+                    }
+                    else
+                    {
+                        AddMessageToChat(message);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error receiving messages: " + ex.Message, "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                // Optionally reconnect or close the client
+                UpdateStatus($"Error receiving messages: {ex.Message}");
+            }
+        }
+
+        private void UpdateUserList(string userList)
+        {
+            Invoke(new Action(() =>
+            {
+                
+                users_ListBox.Items.Clear();
+                string[] users = userList.Split(',');
+                foreach (var user in users)
+                {
+                    users_ListBox.Items.Add(user);
+                }
+            }));
+        }
+
+        private void AddMessageToChat(string message)
+        {
+            Invoke(new Action(() =>
+            {
+                chatTextBox.AppendText($"[{DateTime.Now.ToLongTimeString()}] {message}" + Environment.NewLine);
+            }));
+        }
+
+        private void UpdateStatus(string status)
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new Action(() => MessageBox.Show(status, "Connection Status", MessageBoxButtons.OK, MessageBoxIcon.Information)));
+            }
+            else
+            {
+                MessageBox.Show(status, "Connection Status", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -95,6 +121,11 @@ namespace Client_TCP
                 string selectedUser = users_ListBox.SelectedItem.ToString();
                 send_TextBox.Text = $"для <<{selectedUser}>>: ";
             }
+        }
+
+        private void chatTextBox_TextChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
